@@ -171,13 +171,32 @@ const startMedia = async () => {
 			await player.play();
 			setTrackName(playlist.availableFiles[currentTrack]);
 		} catch (e) {
-			// report the error
-			console.error('Couldn\'t play music');
-			console.error(e);
-			// set state back to not playing for good UI experience
-			mediaPlaying.value = false;
-			stateChanged();
-			setTrackName('Not playing');
+			if (e.name === 'NotAllowedError' && mediaPlaying.value === true) {
+				// Browser blocked autoplay - retry on first user interaction
+				console.log('Autoplay blocked - will start music on first tap/click');
+				const retryOnInteraction = () => {
+					document.removeEventListener('click', retryOnInteraction);
+					document.removeEventListener('touchstart', retryOnInteraction);
+					player.play().then(() => {
+						setTrackName(playlist.availableFiles[currentTrack]);
+					}).catch((e2) => {
+						console.error('Couldn\'t play music after interaction');
+						mediaPlaying.value = false;
+						stateChanged();
+						setTrackName('Not playing');
+					});
+				};
+				document.addEventListener('click', retryOnInteraction);
+				document.addEventListener('touchstart', retryOnInteraction);
+			} else {
+				// report the error
+				console.error('Couldn\'t play music');
+				console.error(e);
+				// set state back to not playing for good UI experience
+				mediaPlaying.value = false;
+				stateChanged();
+				setTrackName('Not playing');
+			}
 		}
 	}
 };

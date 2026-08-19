@@ -161,7 +161,15 @@ if (process.env?.DIST === '1') {
 	app.use('/music', express.static('./server/music', staticOptions));
 
 	// render the EJS template in production mode (serve compressed files from dist directory)
-	app.get('/', (req, res) => { renderIndex(req, res, true); });
+	app.get('/', (req, res) => {
+		if (hasQsVars && Object.keys(req.query).length === 0) {
+			const url = new URL(`${req.protocol}://${req.host}${req.url}`);
+			url.search = defaultSearchParams;
+			res.redirect(307, url.toString());
+			return;
+		}
+		renderIndex(req, res, true);
+	});
 
 	app.use('/', express.static('./dist', staticOptions));
 } else {
